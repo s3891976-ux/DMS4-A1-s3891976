@@ -2331,6 +2331,24 @@
       gap: 5px;
     }
 
+    .exp-name {
+      font: inherit;
+      font-size: 17px;
+      padding: 4px 10px;
+      border: 2px solid var(--ink);
+      border-radius: 10px;
+      background: var(--paper);
+      color: var(--ink);
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .exp-name:focus {
+      outline: 2px dashed var(--ink);
+      outline-offset: 2px;
+    }
+
     .menu-label {
       font-size: 15px;
       color: var(--ink-soft);
@@ -3640,6 +3658,8 @@
         <span>Xuất ảnh</span>
       </button>
       <div class="menu export-menu" id="exportMenu" hidden>
+        <label class="menu-group"><span class="menu-label">Tên tệp</span><input type="text" id="expName"
+            class="exp-name" maxlength="60" spellcheck="false" autocomplete="off"></label>
         <button class="pill menu-item" data-export="png"><span>PNG</span><small>nét sắc nhất</small></button>
         <button class="pill menu-item" data-export="jpeg"><span>JPEG</span><small>nhẹ hơn</small></button>
         <button class="pill menu-item" data-export="webp"><span>WebP</span><small>nhẹ, sắc</small></button>
@@ -6755,7 +6775,7 @@
       (uvOn() ? $('uvView') : $('sheet')).append($('recBadge'));
       rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
       rec.onstop = () => {
-        saveBlob(new Blob(chunks, { type }), 'tranh-thuc-day.' + (type.includes('mp4') ? 'mp4' : 'webm'));
+        saveBlob(new Blob(chunks, { type }), fileBase() + '.' + (type.includes('mp4') ? 'mp4' : 'webm'));
         toast('Đã lưu video vào thư mục tải xuống.');
       };
       rec.start();
@@ -6812,74 +6832,90 @@
         Object.assign(list[list.length - 1], { tex, grain });
       };
 
-      // Mặt đất
-      add('pencil', K, 6, 1, curve(30, 650, 320, 645, 640, 652, 920, 646, 1170, 650));
-      // Mặt trời
-      color(2, '#e0c463', ring(173, 141, 52, 52), 'halftone', .35);
-      add('pen', K, LINE, 2, ring(165, 135, 58, 58));
-      for (let i = 0; i < 9; i++) {
-        const g = i / 9 * Math.PI * 2;
-        line(2, 165 + Math.cos(g) * 68, 135 + Math.sin(g) * 68, 165 + Math.cos(g) * 98, 135 + Math.sin(g) * 98);
-      }
-      // Mây
+      /* Tranh mẫu kiểu trang Home: chỉ nét mực đen trên giấy, mỗi hình làm mẫu một kiểu chuyển động, có chữ ghi tên viết tay ở dưới. */
+      const ink = (ep, pts, w = LINE) => add('pen', K, w, ep, pts);
+      // Chữ viết tay bằng nét (lưới 4×6 ô), nằm ở lớp nền nên đứng yên.
+      const GLYPH = {
+        A: [[0, 6, 2, 0, 4, 6], [1, 3.5, 3, 3.5]], D: [[0, 0, 0, 6, 2.6, 6, 4, 4.6, 4, 1.4, 2.6, 0, 0, 0]], E: [[4, 0, 0, 0, 0, 6, 4, 6], [0, 3, 3, 3]],
+        F: [[4, 0, 0, 0, 0, 6], [0, 3, 3, 3]], H: [[0, 0, 0, 6], [4, 0, 4, 6], [0, 3, 4, 3]], I: [[2, 0, 2, 6], [.8, 0, 3.2, 0], [.8, 6, 3.2, 6]],
+        K: [[0, 0, 0, 6], [4, 0, 0, 3.6], [1.4, 2.6, 4, 6]], L: [[0, 0, 0, 6, 4, 6]], M: [[0, 6, 0, 0, 2, 3.2, 4, 0, 4, 6]], N: [[0, 6, 0, 0, 4, 6, 4, 0]],
+        O: [[1.2, 0, 2.8, 0, 4, 1.4, 4, 4.6, 2.8, 6, 1.2, 6, 0, 4.6, 0, 1.4, 1.2, 0]], P: [[0, 6, 0, 0, 3, 0, 4, 1, 4, 2, 3, 3, 0, 3]],
+        R: [[0, 6, 0, 0, 3, 0, 4, 1, 4, 2, 3, 3, 0, 3], [2, 3, 4, 6]], S: [[4, 1, 3, 0, 1, 0, 0, 1, 0, 2, 1, 3, 3, 3, 4, 4, 4, 5, 3, 6, 1, 6, 0, 5]],
+        T: [[0, 0, 4, 0], [2, 0, 2, 6]], U: [[0, 0, 0, 4.8, 1.2, 6, 2.8, 6, 4, 4.8, 4, 0]], W: [[0, 0, .9, 6, 2, 2.4, 3.1, 6, 4, 0]], Y: [[0, 0, 2, 3, 4, 0], [2, 3, 2, 6]]
+      };
+      const label = (txt, cx, y, k = 3.6) => {
+        const adv = 6.2 * k, x0 = cx - (txt.length * adv - 2.2 * k) / 2;
+        [...txt].forEach((ch, i) => (GLYPH[ch] || []).forEach(pl => {
+          const pts = []; for (let j = 0; j < pl.length; j += 2) pts.push(x0 + i * adv + pl[j] * k + (rnd() - .5) * 1.2, y + pl[j + 1] * k + (rnd() - .5) * 1.2);
+          add('pen', K, 3, 1, pts.length > 2 ? curve(...pts) : pts);
+        }));
+        add('pencil', K, 2, 1, curve(cx - txt.length * adv / 2, y + 7.6 * k, cx, y + 7.9 * k + rnd() * 2, cx + txt.length * adv / 2, y + 7.4 * k));
+      };
+      const heartPts = (cx, cy, r) => { const a2 = []; for (let t = 0; t <= 48; t++) { const g = t / 48 * Math.PI * 2, x = 16 * Math.pow(Math.sin(g), 3), y = 13 * Math.cos(g) - 5 * Math.cos(2 * g) - 2 * Math.cos(3 * g) - Math.cos(4 * g); a2.push(cx + x * r / 16, cy - y * r / 16); } return a2; };
+
+      // Mặt đất (nền)
+      add('pencil', K, 5, 1, curve(30, 650, 320, 645, 640, 652, 920, 646, 1170, 650));
+      for (let i = 0; i < 14; i++) { const gx = 60 + i * 82 + rnd() * 30; line(1, gx, 650, gx - 6, 638); line(1, gx + 8, 650, gx + 10, 636); }
+      // 2. XOAY: mặt trời
+      ink(2, ring(165, 135, 50, 50));
+      for (let i = 0; i < 10; i++) { const g = i / 10 * Math.PI * 2; line(2, 165 + Math.cos(g) * 62, 135 + Math.sin(g) * 62, 165 + Math.cos(g + .12) * 86, 135 + Math.sin(g + .12) * 86); }
+      dot(2, 148, 126); dot(2, 182, 126); line(2, 150, 150, 165, 160, 180, 150);
+      label('SPIN', 165, 232);
+      // 3. TRÔI: mây
       const cloud = [];
-      for (let t = 0; t <= 90; t++) {
-        const g = t / 90 * Math.PI * 2, bump = 1 + Math.abs(Math.sin(g * 3.5)) * .22;
-        cloud.push(895 + Math.cos(g) * 105 * bump, 110 + Math.sin(g) * 42 * bump);
-      }
-      add('pen', K, LINE, 3, cloud);
-      // Chim
-      line(4, 490, 200, 520, 178, 550, 208, 580, 178, 610, 200);
-      // Cá
-      color(5, '#e0c463', ring(790, 378, 76, 36), 'stripes', .4);
-      add('pen', K, LINE, 5, ring(800, 370, 84, 44));
-      add('pen', K, LINE, 5, curve(720, 370, 668, 336, 676, 370, 668, 400, 720, 370));
-      dot(5, 848, 356);
-      line(5, 868, 382, 850, 388, 838, 382);
-      // Mèo
-      color(6, '#5a72ad', ring(325, 552, 80, 42), 'coarse', .4);
-      line(6, 268, 588, 262, 642);
-      line(6, 302, 594, 300, 642);
-      line(6, 368, 594, 372, 642);
-      line(6, 402, 586, 410, 642);
+      for (let t = 0; t <= 90; t++) { const g = t / 90 * Math.PI * 2, bump = 1 + Math.abs(Math.sin(g * 3.5)) * .22; cloud.push(905 + Math.cos(g) * 100 * bump, 105 + Math.sin(g) * 40 * bump); }
+      ink(3, cloud); line(3, 850, 120, 880, 118); line(3, 930, 128, 965, 124);
+      label('DRIFT', 905, 170);
+      // 4. BAY: chim
+      line(4, 500, 210, 528, 186, 556, 214, 584, 186, 612, 210);
+      line(4, 650, 260, 668, 246, 686, 262, 704, 246, 722, 260);
+      label('FLY', 600, 290);
+      // 5. BƠI: cá
+      ink(5, ring(800, 380, 84, 44));
+      ink(5, curve(720, 380, 668, 346, 676, 380, 668, 410, 720, 380));
+      dot(5, 848, 366); line(5, 868, 392, 850, 398, 838, 392);
+      line(5, 780, 352, 770, 380, 780, 408); line(5, 760, 340, 790, 336);
+      label('SWIM', 790, 452);
+      // 6. ĐI BỘ: mèo có chân
+      line(6, 268, 588, 262, 642); line(6, 302, 594, 300, 642); line(6, 368, 594, 372, 642); line(6, 402, 586, 410, 642);
       line(6, 250, 535, 215, 510, 205, 470, 222, 445);
-      add('pen', K, LINE, 6, ring(335, 545, 92, 52));
-      add('pen', K, LINE, 6, ring(436, 482, 44, 40));
-      line(6, 405, 455, 408, 420, 432, 442);
-      line(6, 442, 442, 464, 420, 468, 458);
-      dot(6, 422, 474);
-      dot(6, 452, 474);
-      line(6, 428, 496, 437, 502, 446, 496);
-      // Cục nhảy
-      color(7, '#2f6650', ring(632, 586, 54, 50), 'noise', .3);
-      add('pen', K, LINE, 7, ring(640, 578, 62, 58));
-      dot(7, 622, 562);
-      dot(7, 658, 562);
-      line(7, 624, 592, 640, 604, 656, 592);
-      // Hoa to
-      line(8, 1040, 645, 1034, 560, 1040, 480);
-      color(8, '#2f6650', curve(1040, 575, 1078, 545, 1098, 552, 1072, 582, 1040, 575));
-      add('pen', K, LINE, 8, curve(1036, 570, 1075, 535, 1100, 545, 1070, 580, 1036, 570));
-      color(8, '#a8283f', ring(1046, 446, 44, 44), 'chalk', .3);
-      for (let i = 0; i < 6; i++) {
-        const g = i / 6 * Math.PI * 2;
-        add('pen', K, LINE, 8, ring(1040 + Math.cos(g) * 34, 440 + Math.sin(g) * 34, 20, 20));
-      }
-      // Hoa nhỏ
-      line(9, 1135, 645, 1130, 590, 1135, 545);
-      color(9, '#e0c463', ring(1140, 522, 26, 26));
-      for (let i = 0; i < 5; i++) {
-        const g = i / 5 * Math.PI * 2;
-        add('pen', K, LINE, 9, ring(1135 + Math.cos(g) * 20, 518 + Math.sin(g) * 20, 13, 13));
-      }
+      ink(6, ring(335, 545, 92, 52)); ink(6, ring(436, 482, 44, 40));
+      line(6, 405, 455, 408, 420, 432, 442); line(6, 442, 442, 464, 420, 468, 458);
+      dot(6, 422, 474); dot(6, 452, 474); line(6, 428, 496, 437, 502, 446, 496);
+      for (let i = 0; i < 3; i++) line(6, 300 + i * 30, 520, 310 + i * 30, 560);
+      label('WALK', 335, 670);
+      // 7. NHẢY: cục tròn có mặt
+      ink(7, ring(640, 588, 58, 54)); dot(7, 622, 572); dot(7, 658, 572); line(7, 624, 600, 640, 612, 656, 600);
+      line(7, 600, 548, 590, 532); line(7, 680, 548, 690, 532);
+      label('HOP', 640, 670);
+      // 8. LĂN: bánh xe có xoắn
+      ink(8, ring(820, 600, 46, 46));
+      { const sp = []; for (let t = 0; t <= 60; t++) { const g = t / 60 * Math.PI * 4, r = 4 + t / 60 * 34; sp.push(820 + Math.cos(g) * r, 600 + Math.sin(g) * r); } ink(8, sp, 3); }
+      label('ROLL', 820, 670);
+      // 9. ĐUNG ĐƯA: hoa to
+      line(9, 1040, 645, 1034, 560, 1040, 480);
+      ink(9, curve(1036, 570, 1075, 535, 1100, 545, 1070, 580, 1036, 570));
+      ink(9, ring(1040, 440, 22, 22));
+      for (let i = 0; i < 7; i++) { const g = i / 7 * Math.PI * 2; ink(9, ring(1040 + Math.cos(g) * 40, 440 + Math.sin(g) * 40, 18, 18)); }
+      label('SWAY', 1040, 670);
+      // 10. ĐẬP: trái tim
+      ink(10, heartPts(330, 350, 50)); line(10, 300, 330, 310, 316); ink(10, heartPts(330, 352, 26), 3);
+      label('PULSE', 330, 420);
+      // 11. ĐỨNG YÊN: ngôi nhà nhỏ
+      ink(11, curve(60, 648, 60, 560, 170, 560, 170, 648));
+      ink(11, curve(48, 566, 115, 505, 182, 566));
+      ink(11, curve(100, 648, 100, 600, 130, 600, 130, 648));
+      ink(11, ring(80, 585, 10, 10), 3); line(11, 150, 520, 150, 540);
+      label('STILL', 115, 670);
       return { strokes: list, nextId: id };
     }
     function loadSample() {
       const s = makeSample();
       if (strokes.length) pushUndo();
-      strokes = s.strokes; nextId = Math.max(nextId, s.nextId); epoch = 10; settings = {};
+      strokes = s.strokes; nextId = Math.max(nextId, s.nextId); epoch = 12;
+      settings = {};['spin', 'drift', 'fly', 'swim', 'walk', 'hop', 'roll', 'sway', 'pulse', 'none'].forEach((m, i) => { settings['L' + (i + 2)] = { motion: m }; });
       layers = [{ id: 'bg', name: 'Nền', bg: true, visible: true },
-      ...['Mặt trời', 'Mây', 'Chim', 'Cá', 'Mèo', 'Cục tròn', 'Hoa to', 'Hoa nhỏ'].map((name, i) => ({ id: i + 2, name, merge: true, visible: true }))];
+      ...['Mặt trời · Xoay', 'Mây · Trôi', 'Chim · Bay', 'Cá · Bơi', 'Mèo · Đi bộ', 'Cục tròn · Nhảy', 'Bánh xe · Lăn', 'Hoa · Đung đưa', 'Trái tim · Đập', 'Ngôi nhà · Đứng yên'].map((name, i) => ({ id: i + 2, name, merge: true, visible: true }))];
       activeLayer = 6;
       paper = PAPER;
       isSample = true;
@@ -11274,7 +11310,12 @@
     $('pause').onclick = () => { playing = !playing; setIcon($('pause'), playing ? 'pause' : 'play', playing ? 'Tạm dừng' : 'Tiếp tục'); };
     $('rec').onclick = () => { if (recorder) stopRecording(); else startRecording(); };
     /* Tên tệp theo tên dự án, bỏ dấu cho mọi máy đọc được. */
+    /* Tên tệp khi xuất: lấy chữ trong ô "Tên tệp" của menu Xuất ảnh (bỏ ký tự cấm), bỏ trống thì theo tên dự án. */
     function fileBase() {
+      const el = document.getElementById('expName'), v = el ? el.value.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '').trim().replace(/\.(png|jpe?g|webp|gif|webm|mp4)$/i, '').slice(0, 60) : '';
+      return v || autoBase();
+    }
+    function autoBase() {
       const p = typeof projects !== 'undefined' && projects.find(x => x.id === currentId);
       const s = (p ? projLabel(p.name) : '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D')
         .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
@@ -11489,8 +11530,10 @@
       if (typeof closeMenu === 'function') closeMenu();
       $('exportMenu').hidden = !open;
       $('png').setAttribute('aria-expanded', String(open));
-      if (open) document.querySelector('[data-export]').focus();
+      if (open) { const n = $('expName'); if (!n.dataset.edited) n.value = autoBase(); n.focus(); n.select(); }
     };
+    $('expName').addEventListener('input', e => { e.target.dataset.edited = e.target.value ? '1' : ''; });
+    $('expName').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); document.querySelector('[data-export]').click(); } if (e.key === 'Escape') { closeExport(); $('png').focus(); } });
     document.querySelectorAll('[data-export]').forEach(b => {
       b.onclick = () => { closeExport(); if (b.dataset.export === 'gif') exportGif(); else exportStill(b.dataset.export); };
     });
@@ -11820,7 +11863,7 @@
       "Nét chạm nhau tự gom thành hình, nét rời là các hình khác nhau.": "Touching strokes group into a shape; separate strokes are separate shapes.",
       "Mở panel Hoạt hình": "Open the Animation panel",
       "Thu gọn panel Hoạt hình": "Collapse the Animation panel",
-      "Hoạt hình": "Animation", "Cơ thể": "Anatomy", "Mục panel phải": "Right panel sections",
+      "Hoạt hình": "Animation", "Cơ thể": "Anatomy", "Mặt trời · Xoay": "Sun · Spin", "Mây · Trôi": "Cloud · Drift", "Chim · Bay": "Birds · Fly", "Cá · Bơi": "Fish · Swim", "Mèo · Đi bộ": "Cat · Walk", "Cục tròn · Nhảy": "Blob · Hop", "Bánh xe · Lăn": "Wheel · Roll", "Hoa · Đung đưa": "Flower · Sway", "Trái tim · Đập": "Heart · Pulse", "Ngôi nhà · Đứng yên": "House · Still", "Tên tệp": "File name", "Mục panel phải": "Right panel sections",
       "Khóc toáng": "Bawling",
       "Cười híp mắt": "Squinty smile",
       "Ngượng ngùng": "Shy",
