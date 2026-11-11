@@ -6837,14 +6837,39 @@
       const D = doodleList();
       /* Cảnh công viên: mặt trời và chim trên trời; dưới đất chó đuổi bóng, thỏ nhảy, chậu cây đung đưa, mèo ngồi nhìn. */
       // [chỉ số hình trong doodleList, x, y, cỡ]
-      const PLACE = [[10, 150, 135, 1], [8, 560, 165, .9], [0, 250, 510, 1], [6, 500, 560, 1], [7, 690, 515, .95], [5, 860, 500, .95], [1, 1040, 528, .95]];
+      /* Thêm hai hình cùng kiểu doodle trang Home: con bướm và căn nhà to. */
+      const dk = (x, y, r = 4.2) => ['fill', K, 2, dRing(x, y, r, r, 12), 0, 0];
+      const rc = (x0, y0, x1, y1) => [x0, y0, x1, y0, x1, y1, x0, y1, x0, y0];
+      const EXTRA = {
+        butterfly: [
+          ['fill', '#a8283f', 2, dRing(-36, -16, 32, 24, 26, -.5), 6, 4], ['fill', '#a8283f', 2, dRing(36, -16, 32, 24, 26, .5), 6, 4],
+          ['fill', '#e0c463', 2, dRing(-26, 24, 20, 16, 22, .4), 5, 4], ['fill', '#e0c463', 2, dRing(26, 24, 20, 16, 22, -.4), 5, 4],
+          ['ink', K, 5, dRing(-36, -16, 32, 24, 26, -.5)], ['ink', K, 5, dRing(36, -16, 32, 24, 26, .5)],
+          ['ink', K, 5, dRing(-26, 24, 20, 16, 22, .4)], ['ink', K, 5, dRing(26, 24, 20, 16, 22, -.4)],
+          ['fill', '#5a72ad', 2, dRing(0, 4, 8, 32, 16), 3, 2], ['ink', K, 5, dRing(0, 4, 8, 32, 16)],
+          ['ink', K, 4, [-3, -26, -10, -44, -18, -54]], ['ink', K, 4, [3, -26, 10, -44, 18, -54]], dk(-18, -55, 4), dk(18, -55, 4),
+          dk(-42, -20, 5), dk(42, -20, 5)
+        ],
+        house: [
+          ['fill', '#e0c463', 2, rc(-110, -20, 110, 120), 9, 6], ['fill', '#a8283f', 2, [-138, -20, 0, -134, 138, -20, -138, -20], 8, 6],
+          ['fill', '#2f6650', 2, rc(-26, 44, 26, 120), 5, 4], ['fill', '#5a72ad', 2, rc(-88, 8, -44, 52), 5, 4], ['fill', '#5a72ad', 2, rc(44, 8, 88, 52), 5, 4],
+          ['ink', K, 5.5, rc(-110, -20, 110, 120)], ['ink', K, 5.5, [-140, -18, 0, -136, 140, -18, -140, -18]],
+          ['ink', K, 5.5, [56, -72, 56, -112, 88, -112, 88, -46]],
+          ['ink', K, 5, rc(-26, 44, 26, 120)], dk(14, 84, 4.5),
+          ['ink', K, 4.5, rc(-88, 8, -44, 52)], ['ink', K, 4, [-66, 8, -66, 52]], ['ink', K, 4, [-88, 30, -44, 30]],
+          ['ink', K, 4.5, rc(44, 8, 88, 52)], ['ink', K, 4, [66, 8, 66, 52]], ['ink', K, 4, [44, 30, 88, 30]],
+          ['ink', K, 4, [64, -128, 58, -146, 70, -160, 62, -178]]
+        ]
+      };
+      // [hình: chỉ số trong doodleList hoặc tên trong EXTRA, x, y, cỡ]
+      const PLACE = [[10, 150, 135, 1], ['butterfly', 560, 190, 1], [0, 250, 510, 1], [6, 500, 560, 1], [7, 680, 515, .95], [5, 830, 500, .95], ['house', 1040, 486, 1]];
       // Mặt đất và cỏ: cùng nét sáp mực như hình (lớp nền, đứng yên).
       const crayonLine = (pts0, w = 4.5) => { const pts = []; for (let j = 0; j < pts0.length; j += 2) { if (j) { const qx = pts0[j - 2], qy = pts0[j - 1], x = pts0[j], y = pts0[j + 1], n = Math.max(1, Math.round(Math.hypot(x - qx, y - qy) / 6)); for (let m = 1; m < n; m++) pts.push(qx + (x - qx) * m / n + (rnd() - .5) * 1.6, qy + (y - qy) * m / n + (rnd() - .5) * 1.6); } pts.push(pts0[j] + (rnd() - .5) * 2, pts0[j + 1] + (rnd() - .5) * 2); } list.push({ id: id++, tool: 'crayon', color: K, w, alpha: 1, grain: .22, taper: 0, tex: 'none', epoch: 1, layer: 'bg', pts }); };
       crayonLine([40, 606, 300, 600, 600, 608, 900, 601, 1160, 606], 5);
       for (let i = 0; i < 16; i++) { const gx = 70 + i * 70 + rnd() * 24; crayonLine([gx - 8, 604, gx - 12, 588], 3.5); crayonLine([gx, 604, gx + 2, 584], 3.5); crayonLine([gx + 8, 604, gx + 13, 590], 3.5); }
       PLACE.forEach(([k, px, py, sc], li) => {
         const ep = li + 2;
-        D[k].forEach(([kind, c, w, pts0, ox = 0, oy = 0]) => {
+        (typeof k === 'string' ? EXTRA[k] : D[k]).forEach(([kind, c, w, pts0, ox = 0, oy = 0]) => {
           const pts = [];
           for (let j = 0; j < pts0.length; j += 2) {
             const x = (pts0[j] + ox) * sc + px, y = (pts0[j + 1] + oy) * sc + py;
@@ -6865,8 +6890,10 @@
       if (strokes.length) pushUndo();
       strokes = s.strokes; nextId = Math.max(nextId, s.nextId); epoch = 9;
       settings = {}; ['spin', 'fly', 'walk', 'roll', 'hop', 'sway', 'none'].forEach((m, i) => { settings['L' + (i + 2)] = { motion: m }; });
+      /* Chó và thỏ vẽ quay mặt sang trái: lật hướng để đi tới chứ không đi lùi. */
+      settings.L4.flip = true; settings.L6.flip = true;
       layers = [{ id: 'bg', name: 'Nền', bg: true, visible: true },
-      ...['Mặt trời', 'Chim', 'Chó', 'Quả bóng', 'Thỏ', 'Chậu cây', 'Mèo'].map((name, i) => ({ id: i + 2, name, merge: true, visible: true }))];
+      ...['Mặt trời', 'Bướm', 'Chó', 'Quả bóng', 'Thỏ', 'Chậu cây', 'Ngôi nhà'].map((name, i) => ({ id: i + 2, name, merge: true, visible: true }))];
       activeLayer = 6;
       paper = PAPER;
       isSample = true;
@@ -11814,7 +11841,7 @@
       "Nét chạm nhau tự gom thành hình, nét rời là các hình khác nhau.": "Touching strokes group into a shape; separate strokes are separate shapes.",
       "Mở panel Hoạt hình": "Open the Animation panel",
       "Thu gọn panel Hoạt hình": "Collapse the Animation panel",
-      "Hoạt hình": "Animation", "Cơ thể": "Anatomy", "Chó": "Dog", "Chậu cây": "Plant pot", "Cừu · Trôi": "Sheep · Drift", "Cá voi · Bơi": "Whale · Swim", "Mèo · Đập": "Cat · Pulse", "Tháp khối · Đứng yên": "Block tower · Still", "Thỏ · Nhảy": "Rabbit · Hop", "Chậu cây · Đung đưa": "Plant · Sway", "Chó · Đi bộ": "Dog · Walk", "Bóng · Lăn": "Ball · Roll", "Chuột · Đi bộ": "Mouse · Walk", "Mặt trời · Xoay": "Sun · Spin", "Mây · Trôi": "Cloud · Drift", "Chim · Bay": "Birds · Fly", "Cá · Bơi": "Fish · Swim", "Mèo · Đi bộ": "Cat · Walk", "Cục tròn · Nhảy": "Blob · Hop", "Bánh xe · Lăn": "Wheel · Roll", "Hoa · Đung đưa": "Flower · Sway", "Trái tim · Đập": "Heart · Pulse", "Ngôi nhà · Đứng yên": "House · Still", "Tên tệp": "File name", "Mục panel phải": "Right panel sections",
+      "Hoạt hình": "Animation", "Cơ thể": "Anatomy", "Bướm": "Butterfly", "Ngôi nhà": "House", "Chó": "Dog", "Chậu cây": "Plant pot", "Cừu · Trôi": "Sheep · Drift", "Cá voi · Bơi": "Whale · Swim", "Mèo · Đập": "Cat · Pulse", "Tháp khối · Đứng yên": "Block tower · Still", "Thỏ · Nhảy": "Rabbit · Hop", "Chậu cây · Đung đưa": "Plant · Sway", "Chó · Đi bộ": "Dog · Walk", "Bóng · Lăn": "Ball · Roll", "Chuột · Đi bộ": "Mouse · Walk", "Mặt trời · Xoay": "Sun · Spin", "Mây · Trôi": "Cloud · Drift", "Chim · Bay": "Birds · Fly", "Cá · Bơi": "Fish · Swim", "Mèo · Đi bộ": "Cat · Walk", "Cục tròn · Nhảy": "Blob · Hop", "Bánh xe · Lăn": "Wheel · Roll", "Hoa · Đung đưa": "Flower · Sway", "Trái tim · Đập": "Heart · Pulse", "Ngôi nhà · Đứng yên": "House · Still", "Tên tệp": "File name", "Mục panel phải": "Right panel sections",
       "Khóc toáng": "Bawling",
       "Cười híp mắt": "Squinty smile",
       "Ngượng ngùng": "Shy",
